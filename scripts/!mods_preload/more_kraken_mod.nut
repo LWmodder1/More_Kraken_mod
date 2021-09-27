@@ -1,772 +1,85 @@
 ::mods_registerMod("mod_more_krakens", 1.0, "Spawning more Krakens");
 ::mods_queue("mod_more_krakens", null, function()
 {
-
-	local gt = this.getroottable();
-
-	if (!("World" in gt.Const))
+	::mods_hookNewObject("factions/actions/send_beast_roamers_action", function ( obj )
 	{
-		gt.Const.World <- {};
-	}
-
-	if (!("Spawn" in gt.Const.World))
-	{
-		gt.Const.World.Spawn <- {};
-	}
-
-	gt.Const.World.Spawn.Kraken <- [
+		local beast = function ( _action, _nearTile = null )
 		{
-			MovementSpeedMult = 0.1,
-			VisibilityMult = 1.0,
-			VisionMult = 1.0,
-			Body = "figure_kraken_01",
-			Troops = [
-				{
-					Type = this.Const.World.Spawn.Troops.Kraken,
-					Num = 1
-				}
-			]
-		}
-	];
-
-
-    ::mods_hookNewObject("factions/actions/send_beast_roamers_action.nut", function(o)
-    {
-		o.create = function()
-		{
-			this.m.ID = "send_beast_roamers_action";
-			this.m.Cooldown = 5.0;
-			this.faction_action.create();
-			local distanceToNextAlly = 10;
-			local beast;
-			beast = function ( _action, _nearTile = null )
+			// i comment this 'if check' so kraken can spawn even when you haven't killed the one in legendary location, remove it if you want it keep this spawn condition
+			/*if (!this.World.Flags.get("IsKrakenDefeated"))
 			{
-				local disallowedTerrain = [];
+				return false;
+			}*/
 
-				if (this.Const.DLC.Unhold)
+			local disallowedTerrain = [];
+			
+			// i add this so it won't be messy with a tons of i == || i == || i === ....
+			local validTerrain = [
+				this.Const.World.TerrainType.Swamp,
+				this.Const.World.TerrainType.Ocean,
+				this.Const.World.TerrainType.Shore,
+				this.Const.World.TerrainType.Oasis,
+			];
+
+			for( local i = 0; i < this.Const.World.TerrainType.COUNT; i = i )
+			{
+				if (validTerrain.find(i) != null)
 				{
-					for( local i = 0; i < this.Const.World.TerrainType.COUNT; i = ++i )
-					{
-						if (i == this.Const.World.TerrainType.Steppe || i == this.Const.World.TerrainType.Plains)
-						{
-						}
-						else
-						{
-							disallowedTerrain.push(i);
-						}
-					}
 				}
 				else
 				{
-					disallowedTerrain = [
-						this.Const.World.TerrainType.Snow,
-						this.Const.World.TerrainType.SnowyForest,
-						this.Const.World.TerrainType.Forest,
-						this.Const.World.TerrainType.LeaveForest,
-						this.Const.World.TerrainType.AutumnForest,
-						this.Const.World.TerrainType.Desert,
-						this.Const.World.TerrainType.Oasis
-					];
+					disallowedTerrain.push(i);
 				}
 
-				local tile = _action.getTileToSpawnLocation(10, disallowedTerrain, 7, 35, 1000, 3, 0, _nearTile, 0.0, 0.75);
-
-				if (tile == null)
-				{
-					return false;
-				}
-
-				if (_action.getDistanceToNextAlly(tile) <= distanceToNextAlly / (_nearTile == null ? 1 : 2))
-				{
-					return false;
-				}
-
-				local distanceToNextSettlement = _action.getDistanceToSettlements(tile);
-				local party = _action.getFaction().spawnEntity(tile, "Nachzehrers", false, this.Const.World.Spawn.Ghouls, this.Math.rand(80, 120) * _action.getScaledDifficultyMult() * this.Math.maxf(0.7, this.Math.minf(1.5, distanceToNextSettlement / 14.0)));
-				party.getSprite("banner").setBrush("banner_beasts_01");
-				party.setDescription("A flock of scavenging nachzehrers.");
-				party.setFootprintType(this.Const.World.FootprintsType.Ghouls);
-				party.setSlowerAtNight(false);
-				party.setUsingGlobalVision(false);
-				party.setLooting(false);
-				local roam = this.new("scripts/ai/world/orders/roam_order");
-				roam.setAllTerrainAvailable();
-				roam.setTerrain(this.Const.World.TerrainType.Mountains, false);
-				roam.setTerrain(this.Const.World.TerrainType.Ocean, false);
-				roam.setTerrain(this.Const.World.TerrainType.Shore, false);
-				party.getController().addOrder(roam);
-				return true;
-			};
-			this.m.Options.push(beast);
-			this.m.BeastsLow.push(beast);
-			beast = function ( _action, _nearTile = null )
-			{
-				local disallowedTerrain = [];
-
-				for( local i = 0; i < this.Const.World.TerrainType.COUNT; i = ++i )
-				{
-					if (i == this.Const.World.TerrainType.Forest || i == this.Const.World.TerrainType.SnowyForest || i == this.Const.World.TerrainType.LeaveForest || i == this.Const.World.TerrainType.AutumnForest)
-					{
-					}
-					else
-					{
-						disallowedTerrain.push(i);
-					}
-				}
-
-				local tile = _action.getTileToSpawnLocation(10, disallowedTerrain, 7, 50, 1000, 3, 0, _nearTile, 0.2);
-
-				if (tile == null)
-				{
-					return false;
-				}
-
-				if (_action.getDistanceToNextAlly(tile) <= distanceToNextAlly / (_nearTile == null ? 1 : 2))
-				{
-					return false;
-				}
-
-				local distanceToNextSettlement = _action.getDistanceToSettlements(tile);
-				local party = _action.getFaction().spawnEntity(tile, "Direwolves", false, this.Const.World.Spawn.Direwolves, this.Math.rand(80, 120) * _action.getScaledDifficultyMult() * this.Math.maxf(0.7, this.Math.minf(1.5, distanceToNextSettlement / 14.0)));
-				party.getSprite("banner").setBrush("banner_beasts_01");
-				party.setDescription("A pack of ferocious direwolves on the hunt for prey.");
-				party.setFootprintType(this.Const.World.FootprintsType.Direwolves);
-				party.setSlowerAtNight(false);
-				party.setUsingGlobalVision(false);
-				party.setLooting(false);
-				local roam = this.new("scripts/ai/world/orders/roam_order");
-				roam.setNoTerrainAvailable();
-				roam.setTerrain(this.Const.World.TerrainType.Forest, true);
-				roam.setTerrain(this.Const.World.TerrainType.SnowyForest, true);
-				roam.setTerrain(this.Const.World.TerrainType.LeaveForest, true);
-				roam.setTerrain(this.Const.World.TerrainType.AutumnForest, true);
-				roam.setTerrain(this.Const.World.TerrainType.Hills, true);
-				party.getController().addOrder(roam);
-				return true;
-			};
-			this.m.Options.push(beast);
-			this.m.BeastsLow.push(beast);
-
-			if (this.Const.DLC.Desert)
-			{
-				beast = function ( _action, _nearTile = null )
-				{
-					local disallowedTerrain = [];
-
-					for( local i = 0; i < this.Const.World.TerrainType.COUNT; i = ++i )
-					{
-						if (i == this.Const.World.TerrainType.Desert || i == this.Const.World.TerrainType.Oasis || i == this.Const.World.TerrainType.Hills)
-						{
-						}
-						else
-						{
-							disallowedTerrain.push(i);
-						}
-					}
-
-					local tile = _action.getTileToSpawnLocation(10, disallowedTerrain, 7, 50, 1000, 3, 0, _nearTile, 0.0, 0.2);
-
-					if (tile == null)
-					{
-						return false;
-					}
-
-					if (_action.getDistanceToNextAlly(tile) <= distanceToNextAlly / (_nearTile == null ? 1 : 2))
-					{
-						return false;
-					}
-
-					local distanceToNextSettlement = _action.getDistanceToSettlements(tile);
-					local party = _action.getFaction().spawnEntity(tile, "Hyenas", false, this.Const.World.Spawn.Hyenas, this.Math.rand(80, 120) * _action.getScaledDifficultyMult() * this.Math.maxf(0.7, this.Math.minf(1.5, distanceToNextSettlement / 14.0)));
-					party.getSprite("banner").setBrush("banner_beasts_01");
-					party.setDescription("A pack of esurient hyenas on the hunt for prey.");
-					party.setFootprintType(this.Const.World.FootprintsType.Hyenas);
-					party.setSlowerAtNight(false);
-					party.setUsingGlobalVision(false);
-					party.setLooting(false);
-					local roam = this.new("scripts/ai/world/orders/roam_order");
-					roam.setNoTerrainAvailable();
-					roam.setTerrain(this.Const.World.TerrainType.Desert, true);
-					roam.setTerrain(this.Const.World.TerrainType.Oasis, true);
-					roam.setTerrain(this.Const.World.TerrainType.Steppe, true);
-					roam.setTerrain(this.Const.World.TerrainType.Hills, true);
-					party.getController().addOrder(roam);
-					return true;
-				};
-				this.m.Options.push(beast);
-				beast = function ( _action, _nearTile = null )
-				{
-					local disallowedTerrain = [];
-
-					for( local i = 0; i < this.Const.World.TerrainType.COUNT; i = ++i )
-					{
-						if (i == this.Const.World.TerrainType.Desert || i == this.Const.World.TerrainType.Oasis)
-						{
-						}
-						else
-						{
-							disallowedTerrain.push(i);
-						}
-					}
-
-					local tile = _action.getTileToSpawnLocation(10, disallowedTerrain, 7, 50, 1000, 3, 0, _nearTile, 0.0, 0.2);
-
-					if (tile == null)
-					{
-						return false;
-					}
-
-					if (_action.getDistanceToNextAlly(tile) <= distanceToNextAlly / (_nearTile == null ? 1 : 2))
-					{
-						return false;
-					}
-
-					local distanceToNextSettlement = _action.getDistanceToSettlements(tile);
-					local party = _action.getFaction().spawnEntity(tile, "Serpents", false, this.Const.World.Spawn.Serpents, this.Math.rand(80, 120) * _action.getScaledDifficultyMult() * this.Math.maxf(0.7, this.Math.minf(1.5, distanceToNextSettlement / 14.0)));
-					party.getSprite("banner").setBrush("banner_beasts_01");
-					party.setDescription("Giant serpents slithering about.");
-					party.setFootprintType(this.Const.World.FootprintsType.Serpents);
-					party.setSlowerAtNight(false);
-					party.setUsingGlobalVision(false);
-					party.setLooting(false);
-					local roam = this.new("scripts/ai/world/orders/roam_order");
-					roam.setNoTerrainAvailable();
-					roam.setTerrain(this.Const.World.TerrainType.Desert, true);
-					roam.setTerrain(this.Const.World.TerrainType.Oasis, true);
-					roam.setTerrain(this.Const.World.TerrainType.Steppe, true);
-					roam.setTerrain(this.Const.World.TerrainType.Hills, true);
-					party.getController().addOrder(roam);
-					return true;
-				};
-				this.m.Options.push(beast);
+				i = ++i;
 			}
 
-			if (this.Const.DLC.Unhold)
+			local tile = _action.getTileToSpawnLocation(10, disallowedTerrain, 25, 1000, 1000, 3, 0, _nearTile);
+
+			if (tile == null)
 			{
-				beast = function ( _action, _nearTile = null )
-				{
-					local disallowedTerrain = [];
-
-					for( local i = 0; i < this.Const.World.TerrainType.COUNT; i = ++i )
-					{
-						if (i == this.Const.World.TerrainType.Forest || i == this.Const.World.TerrainType.LeaveForest || i == this.Const.World.TerrainType.AutumnForest)
-						{
-						}
-						else
-						{
-							disallowedTerrain.push(i);
-						}
-					}
-
-					local tile = _action.getTileToSpawnLocation(10, disallowedTerrain, 7, 40, 1000, 3, 0, _nearTile, this.Const.DLC.Desert ? 0.2 : 0.1, 0.8);
-
-					if (tile == null)
-					{
-						return false;
-					}
-
-					if (_action.getDistanceToNextAlly(tile) <= distanceToNextAlly / (_nearTile == null ? 1 : 2))
-					{
-						return false;
-					}
-
-					local distanceToNextSettlement = _action.getDistanceToSettlements(tile);
-					local party = _action.getFaction().spawnEntity(tile, "Webknechts", false, this.Const.World.Spawn.Spiders, this.Math.rand(80, 120) * _action.getScaledDifficultyMult() * this.Math.maxf(0.7, this.Math.minf(1.5, distanceToNextSettlement / 14.0)));
-					party.getSprite("banner").setBrush("banner_beasts_01");
-					party.setDescription("A swarm of webknechts skittering about.");
-					party.setFootprintType(this.Const.World.FootprintsType.Spiders);
-					party.setSlowerAtNight(false);
-					party.setUsingGlobalVision(false);
-					party.setLooting(false);
-					party.getFlags().set("IsWebknechts", true);
-					local roam = this.new("scripts/ai/world/orders/roam_order");
-					roam.setNoTerrainAvailable();
-					roam.setTerrain(this.Const.World.TerrainType.Forest, true);
-					roam.setTerrain(this.Const.World.TerrainType.LeaveForest, true);
-					roam.setTerrain(this.Const.World.TerrainType.AutumnForest, true);
-					roam.setMinRange(1);
-					roam.setMaxRange(4);
-					party.getController().addOrder(roam);
-					return true;
-				};
-				this.m.Options.push(beast);
-				this.m.BeastsLow.push(beast);
-				beast = function ( _action, _nearTile = null )
-				{
-					if (this.World.getTime().Days < 10 && _nearTile == null)
-					{
-						return false;
-					}
-
-					local disallowedTerrain = [];
-
-					for( local i = 0; i < this.Const.World.TerrainType.COUNT; i = ++i )
-					{
-						if (i == this.Const.World.TerrainType.Tundra || i == this.Const.World.TerrainType.Hills || i == this.Const.World.TerrainType.Mountains)
-						{
-						}
-						else
-						{
-							disallowedTerrain.push(i);
-						}
-					}
-
-					local tile = _action.getTileToSpawnLocation(10, disallowedTerrain, 10 - (_nearTile == null ? 0 : 2), 100, 1000, 3, 0, _nearTile, 0.0, 0.9);
-
-					if (tile == null)
-					{
-						return false;
-					}
-
-					if (_action.getDistanceToNextAlly(tile) <= distanceToNextAlly / (_nearTile == null ? 1 : 2))
-					{
-						return false;
-					}
-
-					local distanceToNextSettlement = _action.getDistanceToSettlements(tile);
-					local party = _action.getFaction().spawnEntity(tile, "Unhold", false, this.Const.World.Spawn.Unhold, this.Math.rand(80, 120) * _action.getScaledDifficultyMult() * this.Math.maxf(0.7, this.Math.minf(1.5, distanceToNextSettlement / 14.0)));
-					party.getSprite("banner").setBrush("banner_beasts_01");
-					party.setDescription("One or more lumbering giants.");
-					party.setFootprintType(this.Const.World.FootprintsType.Unholds);
-					party.setSlowerAtNight(true);
-					party.setUsingGlobalVision(false);
-					party.setLooting(false);
-					party.getFlags().set("IsUnholds", true);
-					local roam = this.new("scripts/ai/world/orders/roam_order");
-					roam.setNoTerrainAvailable();
-					roam.setTerrain(this.Const.World.TerrainType.Forest, true);
-					roam.setTerrain(this.Const.World.TerrainType.Hills, true);
-					roam.setTerrain(this.Const.World.TerrainType.Tundra, true);
-					roam.setTerrain(this.Const.World.TerrainType.Mountains, true);
-					party.getController().addOrder(roam);
-					return true;
-				};
-				this.m.Options.push(beast);
-				this.m.BeastsMedium.push(beast);
-				beast = function ( _action, _nearTile = null )
-				{
-					if (this.World.getTime().Days < 10 && _nearTile == null)
-					{
-						return false;
-					}
-
-					local isTundraAllowed = this.Math.rand(1, 100) <= 20;
-					local disallowedTerrain = [];
-
-					for( local i = 0; i < this.Const.World.TerrainType.COUNT; i = ++i )
-					{
-						if (i == this.Const.World.TerrainType.Snow || i == this.Const.World.TerrainType.SnowyForest || i == this.Const.World.TerrainType.Tundra && isTundraAllowed)
-						{
-						}
-						else
-						{
-							disallowedTerrain.push(i);
-						}
-					}
-
-					local tile = _action.getTileToSpawnLocation(10, disallowedTerrain, 5, 100, 1000, 3, 0, _nearTile, 0.7);
-
-					if (tile == null)
-					{
-						return false;
-					}
-
-					if (_action.getDistanceToNextAlly(tile) <= distanceToNextAlly / (_nearTile == null ? 1 : 2))
-					{
-						return false;
-					}
-
-					local distanceToNextSettlement = _action.getDistanceToSettlements(tile);
-					local party = _action.getFaction().spawnEntity(tile, "Unhold", false, this.Const.World.Spawn.UnholdFrost, this.Math.rand(80, 120) * _action.getScaledDifficultyMult() * this.Math.maxf(0.7, this.Math.minf(1.5, distanceToNextSettlement / 14.0)));
-					party.getSprite("banner").setBrush("banner_beasts_01");
-					party.setDescription("One or more lumbering giants.");
-					party.setFootprintType(this.Const.World.FootprintsType.Unholds);
-					party.setSlowerAtNight(true);
-					party.setUsingGlobalVision(false);
-					party.setLooting(false);
-					party.getFlags().set("IsUnholds", true);
-					local roam = this.new("scripts/ai/world/orders/roam_order");
-					roam.setNoTerrainAvailable();
-					roam.setTerrain(this.Const.World.TerrainType.Snow, true);
-					roam.setTerrain(this.Const.World.TerrainType.SnowyForest, true);
-					roam.setTerrain(this.Const.World.TerrainType.Hills, true);
-
-					if (isTundraAllowed)
-					{
-						roam.setTerrain(this.Const.World.TerrainType.Tundra, true);
-					}
-
-					party.getController().addOrder(roam);
-					return true;
-				};
-				this.m.Options.push(beast);
-				this.m.BeastsMedium.push(beast);
-				beast = function ( _action, _nearTile = null )
-				{
-					if (this.World.getTime().Days < 10 && _nearTile == null)
-					{
-						return false;
-					}
-
-					local disallowedTerrain = [];
-
-					for( local i = 0; i < this.Const.World.TerrainType.COUNT; i = ++i )
-					{
-						if (i == this.Const.World.TerrainType.Swamp || i == this.Const.World.TerrainType.LeaveForest || i == this.Const.World.TerrainType.Oasis)
-						{
-						}
-						else
-						{
-							disallowedTerrain.push(i);
-						}
-					}
-
-					local tile = _action.getTileToSpawnLocation(10, disallowedTerrain, 10 - (_nearTile == null ? 0 : 2), 100, 1000, 3, 0, _nearTile);
-
-					if (tile == null)
-					{
-						return false;
-					}
-
-					if (_action.getDistanceToNextAlly(tile) <= distanceToNextAlly / (_nearTile == null ? 1 : 2))
-					{
-						return false;
-					}
-
-					local distanceToNextSettlement = _action.getDistanceToSettlements(tile);
-					local party = _action.getFaction().spawnEntity(tile, "Unhold", false, this.Const.World.Spawn.UnholdBog, this.Math.rand(80, 120) * _action.getScaledDifficultyMult() * this.Math.maxf(0.7, this.Math.minf(1.5, distanceToNextSettlement / 14.0)));
-					party.getSprite("banner").setBrush("banner_beasts_01");
-					party.setDescription("One or more lumbering giants.");
-					party.setFootprintType(this.Const.World.FootprintsType.Unholds);
-					party.setSlowerAtNight(true);
-					party.setUsingGlobalVision(false);
-					party.setLooting(false);
-					party.getFlags().set("IsUnholds", true);
-					local roam = this.new("scripts/ai/world/orders/roam_order");
-					roam.setNoTerrainAvailable();
-					roam.setTerrain(this.Const.World.TerrainType.Swamp, true);
-					roam.setTerrain(this.Const.World.TerrainType.LeaveForest, true);
-					party.getController().addOrder(roam);
-					return true;
-				};
-				this.m.Options.push(beast);
-				this.m.BeastsMedium.push(beast);
-				beast = function ( _action, _nearTile = null )
-				{
-					if (_nearTile == null && this.Math.rand(1, 100) <= 25)
-					{
-						return false;
-					}
-
-					if (this.World.getTime().Days < 15 && _nearTile == null)
-					{
-						return false;
-					}
-
-					local tile = _action.getTileToSpawnLocation(10, [
-						this.Const.World.TerrainType.Mountains,
-						this.Const.World.TerrainType.Forest,
-						this.Const.World.TerrainType.LeaveForest,
-						this.Const.World.TerrainType.AutumnForest,
-						this.Const.World.TerrainType.SnowyForest,
-						this.Const.World.TerrainType.Swamp,
-						this.Const.World.TerrainType.Hills
-					], 7, 35, 1000, 3, 0, _nearTile);
-
-					if (tile == null)
-					{
-						return false;
-					}
-
-					if (_action.getDistanceToNextAlly(tile) <= distanceToNextAlly / (_nearTile == null ? 1 : 2))
-					{
-						return false;
-					}
-
-					local distanceToNextSettlement = _action.getDistanceToSettlements(tile);
-					local party = _action.getFaction().spawnEntity(tile, "Alps", false, this.Const.World.Spawn.Alps, this.Math.rand(80, 120) * _action.getScaledDifficultyMult() * this.Math.maxf(0.7, this.Math.minf(1.5, distanceToNextSettlement / 14.0)));
-					party.getSprite("banner").setBrush("banner_beasts_01");
-					party.setDescription("Pale and haggard creatures creeping around.");
-					party.setFootprintType(this.Const.World.FootprintsType.Alps);
-					party.setSlowerAtNight(false);
-					party.setUsingGlobalVision(false);
-					party.setLooting(false);
-					party.getFlags().set("IsAlps", true);
-					local roam = this.new("scripts/ai/world/orders/roam_order");
-					roam.setAllTerrainAvailable();
-					roam.setTerrain(this.Const.World.TerrainType.Mountains, false);
-					roam.setTerrain(this.Const.World.TerrainType.Ocean, false);
-					roam.setTerrain(this.Const.World.TerrainType.Shore, false);
-					party.getController().addOrder(roam);
-					return true;
-				};
-				this.m.Options.push(beast);
-				this.m.BeastsMedium.push(beast);
-				beast = function ( _action, _nearTile = null )
-				{
-					if (this.World.getTime().Days < 20 && _nearTile == null)
-					{
-						return false;
-					}
-
-					if (_nearTile == null && this.Math.rand(1, 100) <= 10)
-					{
-						return false;
-					}
-
-					local tile = _action.getTileToSpawnLocation(10, [
-						this.Const.World.TerrainType.Mountains,
-						this.Const.World.TerrainType.Hills,
-						this.Const.World.TerrainType.Snow,
-						this.Const.World.TerrainType.SnowyForest,
-						this.Const.World.TerrainType.Desert,
-						this.Const.World.TerrainType.Oasis
-					], 8, 50, 1000, 3, 0, _nearTile, 0.1, 0.9);
-
-					if (tile == null)
-					{
-						return false;
-					}
-
-					if (_action.getDistanceToNextAlly(tile) <= distanceToNextAlly / (_nearTile == null ? 1 : 2))
-					{
-						return false;
-					}
-
-					local distanceToNextSettlement = _action.getDistanceToSettlements(tile);
-					local party = _action.getFaction().spawnEntity(tile, "Hexen", false, this.Const.World.Spawn.HexenAndMore, this.Math.rand(80, 120) * _action.getScaledDifficultyMult() * this.Math.maxf(0.7, this.Math.minf(1.5, distanceToNextSettlement / 14.0)));
-					party.getSprite("banner").setBrush("banner_beasts_01");
-					party.setDescription("A malevolent old crone, said to lure and abduct little children to make broth and concoctions out of, strike sinister pacts with villagers, and weave curses.");
-					party.setFootprintType(this.Const.World.FootprintsType.Hexen);
-					party.setSlowerAtNight(false);
-					party.setUsingGlobalVision(false);
-					party.setLooting(false);
-					local roam = this.new("scripts/ai/world/orders/roam_order");
-					roam.setAllTerrainAvailable();
-					roam.setTerrain(this.Const.World.TerrainType.Mountains, false);
-					roam.setTerrain(this.Const.World.TerrainType.Ocean, false);
-					roam.setTerrain(this.Const.World.TerrainType.Shore, false);
-					party.getController().addOrder(roam);
-					return true;
-				};
-				this.m.Options.push(beast);
-				this.m.BeastsMedium.push(beast);
-				beast = function ( _action, _nearTile = null )
-				{
-					if (this.World.getTime().Days < 25 && _nearTile == null)
-					{
-						return false;
-					}
-
-					local disallowedTerrain = [];
-
-					for( local i = 0; i < this.Const.World.TerrainType.COUNT; i = ++i )
-					{
-						if (i == this.Const.World.TerrainType.Forest || i == this.Const.World.TerrainType.LeaveForest || i == this.Const.World.TerrainType.AutumnForest)
-						{
-						}
-						else
-						{
-							disallowedTerrain.push(i);
-						}
-					}
-
-					local tile = _action.getTileToSpawnLocation(10, disallowedTerrain, 20 - (_nearTile == null ? 0 : 11), 100, 1000, 3, 0, _nearTile, 0.1, 0.9);
-
-					if (tile == null)
-					{
-						return false;
-					}
-
-					if (_action.getDistanceToNextAlly(tile) <= distanceToNextAlly / (_nearTile == null ? 1 : 2))
-					{
-						return false;
-					}
-
-					local distanceToNextSettlement = _action.getDistanceToSettlements(tile);
-					local party = _action.getFaction().spawnEntity(tile, "Schrats", false, this.Const.World.Spawn.Schrats, this.Math.rand(80, 120) * _action.getScaledDifficultyMult() * this.Math.maxf(0.7, this.Math.minf(1.5, distanceToNextSettlement / 14.0)));
-					party.getSprite("banner").setBrush("banner_beasts_01");
-					party.setDescription("A creature of bark and wood, blending between trees and shambling slowly, its roots digging through the soil.");
-					party.setFootprintType(this.Const.World.FootprintsType.Schrats);
-					party.setSlowerAtNight(false);
-					party.setUsingGlobalVision(false);
-					party.setLooting(false);
-					local roam = this.new("scripts/ai/world/orders/roam_order");
-					roam.setNoTerrainAvailable();
-					roam.setTerrain(this.Const.World.TerrainType.Forest, true);
-					roam.setTerrain(this.Const.World.TerrainType.LeaveForest, true);
-					roam.setTerrain(this.Const.World.TerrainType.AutumnForest, true);
-					roam.setMinRange(1);
-					roam.setMaxRange(4);
-					party.getController().addOrder(roam);
-					return true;
-				};
-				this.m.Options.push(beast);
-				this.m.BeastsHigh.push(beast);
-				beast = function ( _action, _nearTile = null )
-				{
-					if (!this.World.Flags.get("IsKrakenDefeated"))
-					{
-						return false;
-					}
-
-					local disallowedTerrain = [];
-
-					for( local i = 0; i < this.Const.World.TerrainType.COUNT; i = ++i )
-					{
-						if (i == this.Const.World.TerrainType.Swamp || i == this.Const.World.TerrainType.Ocean || i == this.Const.World.TerrainType.Shore || i == this.Const.World.TerrainType.Oasis)
-						{
-						}
-						else
-						{
-							disallowedTerrain.push(i);
-						}
-					}
-
-					local tile = _action.getTileToSpawnLocation(10, disallowedTerrain, 25, 1000, 1000, 3, 0, _nearTile);
-
-					if (tile == null)
-					{
-						return false;
-					}
-
-					if (_action.getDistanceToNextAlly(tile) <= distanceToNextAlly)
-					{
-						return false;
-					}
-
-					local distanceToNextSettlement = _action.getDistanceToSettlements(tile);
-					local party = _action.getFaction().spawnEntity(tile, "Kraken", false, this.Const.World.Spawn.Kraken, 1000);
-					party.getSprite("banner").setBrush("banner_beasts_01");
-					party.setDescription("A tentacled horror from another age.");
-					party.setFootprintType(this.Const.World.FootprintsType.Kraken);
-					party.setSlowerAtNight(true);
-					party.setUsingGlobalVision(false);
-					party.setLooting(false);
-					local roam = this.new("scripts/ai/world/orders/roam_order");
-					roam.setNoTerrainAvailable();
-					roam.setTerrain(this.Const.World.TerrainType.Swamp, true);
-					roam.setTerrain(this.Const.World.TerrainType.Ocean, true);
-					roam.setTerrain(this.Const.World.TerrainType.Shore, true);
-					roam.setTerrain(this.Const.World.TerrainType.Oasis, true);
-					party.getController().addOrder(roam);
-					return true;
-				};
-				this.m.Options.push(beast);
-				this.m.Options.push(beast);
-				this.m.Options.push(beast);
+				return false;
 			}
 
-			if (this.Const.DLC.Desert)
+			if (_action.getDistanceToNextAlly(tile) <= distanceToNextAlly)
 			{
-				beast = function ( _action, _nearTile = null )
-				{
-					if (this.World.getTime().Days < 20 && _nearTile == null)
-					{
-						return false;
-					}
-
-					local disallowedTerrain = [];
-
-					for( local i = 0; i < this.Const.World.TerrainType.COUNT; i = ++i )
-					{
-						if (i == this.Const.World.TerrainType.Desert || i == this.Const.World.TerrainType.Oasis || i == this.Const.World.TerrainType.Hills)
-						{
-						}
-						else
-						{
-							disallowedTerrain.push(i);
-						}
-					}
-
-					local tile = _action.getTileToSpawnLocation(10, disallowedTerrain, 16 - (_nearTile == null ? 0 : 10), 100, 1000, 3, 0, _nearTile, 0.0, 0.2);
-
-					if (tile == null)
-					{
-						return false;
-					}
-
-					if (_action.getDistanceToNextAlly(tile) <= distanceToNextAlly / (_nearTile == null ? 1 : 2))
-					{
-						return false;
-					}
-
-					local distanceToNextSettlement = _action.getDistanceToSettlements(tile);
-					local party = _action.getFaction().spawnEntity(tile, "Ifrits", false, this.Const.World.Spawn.SandGolems, this.Math.rand(80, 120) * _action.getScaledDifficultyMult() * this.Math.maxf(0.7, this.Math.minf(1.5, distanceToNextSettlement / 14.0)));
-					party.getSprite("banner").setBrush("banner_beasts_01");
-					party.setDescription("Creatures of living stone shaped by the blistering heat and fire of the burning sun of the south.");
-					party.setFootprintType(this.Const.World.FootprintsType.SandGolems);
-					party.setSlowerAtNight(false);
-					party.setUsingGlobalVision(false);
-					party.setLooting(false);
-					local roam = this.new("scripts/ai/world/orders/roam_order");
-					roam.setNoTerrainAvailable();
-					roam.setTerrain(this.Const.World.TerrainType.Desert, true);
-					roam.setTerrain(this.Const.World.TerrainType.Oasis, true);
-					roam.setTerrain(this.Const.World.TerrainType.Hills, true);
-					party.getController().addOrder(roam);
-					return true;
-				};
-				this.m.Options.push(beast);
+				return false;
 			}
 
-			if (this.Const.DLC.Lindwurm)
+			local distanceToNextSettlement = _action.getDistanceToSettlements(tile);
+
+			if (this.LegendsMod.Configs().LegendLocationScalingEnabled())
 			{
-				beast = function ( _action, _nearTile = null )
-				{
-					if (this.World.getTime().Days < 25 && _nearTile == null)
-					{
-						return false;
-					}
-
-					local disallowedTerrain = [];
-
-					for( local i = 0; i < this.Const.World.TerrainType.COUNT; i = ++i )
-					{
-						if (i == this.Const.World.TerrainType.Steppe || i == this.Const.World.TerrainType.Desert)
-						{
-						}
-						else
-						{
-							disallowedTerrain.push(i);
-						}
-					}
-
-					local tile = _action.getTileToSpawnLocation(10, disallowedTerrain, 18 - (_nearTile == null ? 0 : 10), 100, 1000, 3, 0, _nearTile, this.Const.DLC.Desert ? 0.1 : 0.0, 0.5);
-
-					if (tile == null)
-					{
-						return false;
-					}
-
-					if (_action.getDistanceToNextAlly(tile) <= distanceToNextAlly / (_nearTile == null ? 1 : 2))
-					{
-						return false;
-					}
-
-					local distanceToNextSettlement = _action.getDistanceToSettlements(tile);
-					local party = _action.getFaction().spawnEntity(tile, "Lindwurm", false, this.Const.World.Spawn.Lindwurm, this.Math.rand(80, 120) * _action.getScaledDifficultyMult() * this.Math.maxf(0.7, this.Math.minf(1.5, distanceToNextSettlement / 14.0)));
-					party.getSprite("banner").setBrush("banner_beasts_01");
-					party.setDescription("A Lindwurm - a wingless bipedal dragon resembling a giant snake.");
-					party.setFootprintType(this.Const.World.FootprintsType.Lindwurms);
-					party.setSlowerAtNight(false);
-					party.setUsingGlobalVision(false);
-					party.setLooting(false);
-					local roam = this.new("scripts/ai/world/orders/roam_order");
-					roam.setNoTerrainAvailable();
-					roam.setTerrain(this.Const.World.TerrainType.Forest, true);
-					roam.setTerrain(this.Const.World.TerrainType.LeaveForest, true);
-					roam.setTerrain(this.Const.World.TerrainType.AutumnForest, true);
-					roam.setTerrain(this.Const.World.TerrainType.Desert, true);
-					roam.setTerrain(this.Const.World.TerrainType.Steppe, true);
-					party.getController().addOrder(roam);
-					return true;
-				};
-				this.m.Options.push(beast);
-				this.m.BeastsHigh.push(beast);
+				distanceToNextSettlement = distanceToNextSettlement * 2;
 			}
-		}
-	})
 
+			local party = _action.getFaction().spawnEntity(tile, "Kraken", false, this.Const.World.Spawn.Kraken, 1000);
+			party.getSprite("banner").setBrush("banner_beasts_01");
+			party.setDescription("A tentacled horror from another age.");
+			party.setFootprintType(this.Const.World.FootprintsType.Kraken);
+			party.setSlowerAtNight(true);
+			party.setUsingGlobalVision(false);
+			party.setLooting(false);
+
+			// set the new base speed only 20% compare the usual
+			party.setMovementSpeed(this.Math.floor(party.getBaseMovementSpeed() * 0.2));
+
+			local roam = this.new("scripts/ai/world/orders/roam_order");
+			roam.setNoTerrainAvailable();
+			
+			// set terrain type so spawned kraken don't roam outside of intended terrain
+			roam.setTerrain(this.Const.World.TerrainType.Swamp, true);
+			roam.setTerrain(this.Const.World.TerrainType.Ocean, true);
+			roam.setTerrain(this.Const.World.TerrainType.Shore, true);
+			roam.setTerrain(this.Const.World.TerrainType.Oasis, true);
+			party.getController().addOrder(roam);
+			return true;
+		};
+		
+		// I push this function 3 times so there is more chance for fucntion to be picked
+		obj.m.Options.push(beast);
+		obj.m.Options.push(beast);
+		obj.m.Options.push(beast);
+	});
 })
 
